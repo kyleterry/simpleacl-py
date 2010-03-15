@@ -1,5 +1,3 @@
-import simplejson as json
-
 def class_maker(name, classname):
     """
     This will dynamically make a class object from a
