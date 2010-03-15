@@ -1,0 +1,2 @@
+1.0.1:
+	Added type checks to addRole and addResource in the Acl class to prevent unexpected failues.
