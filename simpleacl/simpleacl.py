@@ -64,17 +64,21 @@ class Acl:
         if (type(role).__name__=='str') or (type(role).__name__=='unicode'):
             self.roles[role] = Role(role)
             self.allow_list[role] = {}
-        else:
+        elif (type(role).__name__=='instance') and (role.__class__.__name__=='Role'):
             self.roles[role.getName()] = role
             self.allow_list[role] = {}
+        else:
+            raise Exception('Unable to add role of type: %s' % (type(role).__name__))
 
         return self
 
     def addResource(self, resource):
         if (type(resource).__name__=='str') or (type(resource).__name__=='unicode'):
             self.resources[resource] = Resource(resource)
-        else:
+        elif (type(resource).__name__=='instance') and (resource.__class__.__name__=='Resource'):
             self.resources[resource.getName()] = resource
+        else:
+            raise Exception('Unable to add role of type: %s' % (type(resource).__name__))
 
         return self
 
