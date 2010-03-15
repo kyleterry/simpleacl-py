@@ -1,1 +1,1 @@
-from simpleacl.simpleacl import *
+from simpleacl import *
