@@ -23,8 +23,8 @@ Instructions for simpleacl Acl class
     >>> acl.isAllowed('delete_page')
     False
 
-Instructions for simpleacl middleware
-=====================================
+Instructions for simpleacl middleware - Pylons
+==============================================
 
 Currently these instructions cover using the middleware with Pylons 0.9.x
 
@@ -74,3 +74,8 @@ Now in PJT/config/middleware.py add the following import...
 You can now access your built simpleacl object from...
     
     request.environ.get('simpleacl')
+
+Instructions for simpleacl middleware - Bottle
+==============================================
+
+Middleware instructions for bottle are coming soon...
