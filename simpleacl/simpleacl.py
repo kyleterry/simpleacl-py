@@ -54,37 +54,56 @@ class MissingResource(Exception):
 
 class Acl:
     """A simple class to manage an 
-       access control list"""
+       access control list.
+    """
     roles = {}
     resources = {}
     allow_list = {}
     active_role = None
 
     def addRole(self, role):
+        """Adds a role by instantiating a new Role object.
+        "role" can be a string or Role object when calling
+        this method.
+        """
         if (type(role).__name__=='str') or (type(role).__name__=='unicode'):
             self.roles[role] = Role(role)
             self.allow_list[role] = {}
-        elif (type(role).__name__=='instance') and (role.__class__.__name__=='Role'):
+        elif (type(role).__name__=='instance') and \
+        (role.__class__.__name__=='Role'):
             self.roles[role.getName()] = role
             self.allow_list[role] = {}
         else:
-            raise Exception('Unable to add role of type: %s' % (type(role).__name__))
+            raise Exception('Unable to add role of type: %s' % \
+            (type(role).__name__))
 
         return self
 
     def addResource(self, resource):
-        if (type(resource).__name__=='str') or (type(resource).__name__=='unicode'):
+        """Adds a resource to the list of resources by
+        instantiating a new Resource object. "resource"
+        can be a string or Resource object when calling
+        this method.
+        """
+        if (type(resource).__name__=='str') or \
+        (type(resource).__name__=='unicode'):
             self.resources[resource] = Resource(resource)
-        elif (type(resource).__name__=='instance') and (resource.__class__.__name__=='Resource'):
+        elif (type(resource).__name__=='instance') and \
+        (resource.__class__.__name__=='Resource'):
             self.resources[resource.getName()] = resource
         else:
-            raise Exception('Unable to add role of type: %s' % (type(resource).__name__))
+            raise Exception('Unable to add role of type: %s' % \
+            (type(resource).__name__))
 
         return self
 
     def allow(self, role, resource):
+        """Use this method to allow a role access to a
+        specific resource or list of resources.
+        """
         if not self.roles.has_key(role):
-            raise MissingRole('Roles must be defined before adding them to the allow list')
+            raise MissingRole('Roles must be defined before adding ' \
+            'them to the allow list')
 
         if not resource:
             return
@@ -99,7 +118,8 @@ class Acl:
 
         for res in resource:
             if not self.resources.has_key(res):
-                raise MissingResource('Resources must be defined before assigning them to roles')
+                raise MissingResource('Resources must be defined ' \
+                'before assigning them to roles')
             if self.allow_list[role].has_key(res):
                 continue
             self.allow_list[role][res] = True
@@ -107,16 +127,29 @@ class Acl:
         return self
 
     def activeRoleIs(self, role):
+        """You must use this method to set the active role
+        before calling Acl.isAllowed(resource). This method
+        should be called when the acl object is built with
+        roles, resources and it's allow list.
+        """
         if not self.roles.has_key(role):
-            raise MissingRole('Roles must be defined before setting them active')
+            raise MissingRole('Roles must be defined before ' \
+            'setting them active')
 
         self.active_role = role
 
         return self
 
     def isAllowed(self, resource):
+        """This method returns a True or False based on the allow
+        list if a role has access to that resource. If Guest (role)
+        has access to Page1 (resource), then calling
+        Acl.isAllowed('Page1') will return True. If Guest doesn't have
+        access - it will return False.
+        """
         if not self.active_role:
-            raise MissingActiveRole('A role must be set active before checking permissions')
+            raise MissingActiveRole('A role must be set active ' \
+            'before checking permissions')
 
         if (self.allow_list[self.active_role].has_key(resource)) and \
         (self.allow_list[self.active_role][resource]==True):
@@ -125,6 +158,11 @@ class Acl:
         return False
 
     def loadFromJson(self, json_data):
+        """You can store your roles, resources and allow list (many to many)
+        in a json encoded string and pass it into this method to build
+        the object without having to call addRole or addResource for each
+        one. TODO: make better documentation for this method.
+        """
         import string
         import sys
         version = string.split(string.split(sys.version)[0], ".")
@@ -132,8 +170,9 @@ class Acl:
             try:
                 import simplejson as json
             except:
-                raise Exception('This method will work natively with Python 2.6.x+. In order to use it with\
-                versions under 2.6.x, you must install the simplejson lib.')
+                raise Exception("""This method will work natively
+                with Python 2.6.x+. In order to use it with versions 
+                under 2.6.x, you must install the simplejson lib.""")
 
         else:
             import json
