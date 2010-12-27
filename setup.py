@@ -7,7 +7,7 @@
 @brief Setuptools configuration for simpleacl
 """
 
-version = '1.0.1'
+version = '1.1.0'
 
 sdict = {
     'name' : 'simpleacl',
