@@ -40,7 +40,6 @@ class Role:
     def get_name(self):
         return self.name
 
-
 class Resource:
     """Holds a resource value"""
 
@@ -102,18 +101,12 @@ class Acl:
         if not self.roles.has_key(role):
             raise MissingRole('Roles must be defined before adding ' \
             'them to the allow list')
-
-        if not resource:
-            return self
-
         if (type(resource).__name__=='str') and resource=='all':
             for res in self.resources:
                 self.allow_list[role][res] = True
             return self
-
         if type(resource).__name__=='str':
             resource = [resource]
-
         for res in resource:
             if not self.resources.has_key(res):
                 raise MissingResource('Resources must be defined ' \
@@ -121,8 +114,16 @@ class Acl:
             if self.allow_list[role].has_key(res):
                 continue
             self.allow_list[role][res] = True
-
         return self
+
+    def role_has_resource(self, role, resource):
+        if isinstance(role, str):
+            role = Role(role)
+        if isinstance(resource, str):
+            resource = Resource(resource)
+        if self.allow_list[role.get_name()].has_key(resource.get_name()):
+            return True
+        return False
 
     def active_role_is(self, role):
         """You must use this method to set the active role
