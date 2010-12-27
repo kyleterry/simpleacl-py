@@ -6,21 +6,21 @@ Instructions for simpleacl Acl class
 
     >>> import simpleacl
     >>> acl = simpleacl.Acl()
-    >>> acl.addRole('admin')
-    >>> acl.addRole('member')
-    >>> acl.addRole('guest')
-    >>> acl.addResource('view_page')
-    >>> acl.addResource('edit_page')
-    >>> acl.addResource('delete_page')
+    >>> acl.add_role('admin')
+    >>> acl.add_role('member')
+    >>> acl.add_role('guest')
+    >>> acl.add_resource('view_page')
+    >>> acl.add_resource('edit_page')
+    >>> acl.add_resource('delete_page')
     >>> acl.allow('admin', 'all')
     >>> acl.allow('member', ['view_page', 'edit_page'])
     >>> acl.allow('guest', 'view_page')
     >>> # set who the active role based on what the user is.
-    >>> acl.activeRoleIs('member')
+    >>> acl.active_role_is('member')
     >>> # check if the user is allowed to the resource
-    >>> acl.isAllowed('edit_page')
+    >>> acl.is_allowed('edit_page')
     True
-    >>> acl.isAllowed('delete_page')
+    >>> acl.is_allowed('delete_page')
     False
 
 Instructions for simpleacl middleware - Pylons
@@ -51,12 +51,12 @@ This is just a general idea of how you can build simpleacl...
 
         def __call__(self):
             acl = simpleacl.Acl()
-            acl.addRole('admin')
-            acl.addRole('member')
-            acl.addRole('guest')
-            acl.addResource('view_page')
-            acl.addResource('edit_page')
-            acl.addResource('delete_page')
+            acl.add_role('admin')
+            acl.add_role('member')
+            acl.add_role('guest')
+            acl.add_resource('view_page')
+            acl.add_resource('edit_page')
+            acl.add_resource('delete_page')
             acl.allow('admin', 'all')
             acl.allow('member', ['view_page', 'edit_page'])
             acl.allow('guest', 'view_page')
