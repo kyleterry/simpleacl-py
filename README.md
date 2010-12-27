@@ -23,7 +23,7 @@ Instructions for simpleacl Acl class
     >>> acl.is_allowed('delete_page')
     False
 
-Instructions for simpleacl middleware - Pylons
+Instructions for simpleacl middleware - Pylons - DEPRICATED
 ==============================================
 
 Currently these instructions cover using the middleware with Pylons 0.9.x
