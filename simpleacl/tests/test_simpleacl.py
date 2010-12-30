@@ -54,11 +54,21 @@ class TestSimpleAcl(unittest.TestCase):
         self.acl.active_role_is('role1')
         assert self.acl.active_role == 'role1'
 
+    @raises(MissingRole)
+    def test_cant_set_to_missing_role(self):
+        self.acl.active_role_is('role666')
+
     def test_allow_role_to_resource(self):
         self.acl.add_role('role1')
         self.acl.add_resource('resource1')
         self.acl.allow('role1', 'resource1')
         assert self.acl.role_has_resource('role1', 'resource1')
+
+    def test_role_does_not_have_resource(self):
+        self.acl.add_role('role1')
+        self.acl.add_resource('resource1')
+        self.acl.allow('role1', 'resource1')
+        assert not self.acl.role_has_resource('role1', 'resource666')
 
     def test_active_role_is_allowed(self):
         self.acl.add_role('role1')
@@ -84,6 +94,12 @@ class TestSimpleAcl(unittest.TestCase):
         self.acl.add_resource('resource2')
         self.acl.allow('role222', 'resource2')
 
+    @raises(MissingResource)
+    def test_cant_allow_missing_resources(self):
+        self.acl.add_role('role1')
+        self.acl.add_resource('resource1')
+        self.acl.allow('role1', 'resource222')
+
     def test_allow_role_to_all_resources(self):
         self.acl.add_role('role1')
         self.acl.add_resource('r1')
@@ -108,3 +124,11 @@ class TestSimpleAcl(unittest.TestCase):
         self.acl.add_resource('r1')
         self.acl.allow('role1', 'r1')
         self.acl.is_allowed('r1')
+
+    def test_object_creation_from_json(self):
+        import json
+        test_dict = {'roles': ['role1', 'role2'], 'resources': ['r1', 'r2',
+            'r3']}
+        test_json = json.dumps(test_dict)
+        acl = simpleacl.Acl.obj_from_json(test_json)
+        assert isinstance(acl, simpleacl.Acl)
