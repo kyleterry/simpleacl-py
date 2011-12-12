@@ -1,4 +1,4 @@
 To install:
 python setup.py install
 OR
-easy_install http://github.com/kyleterry/simpleacl-py/tarball/master
+easy_install http://github.com/EvoTech/simpleacl-py/tarball/master

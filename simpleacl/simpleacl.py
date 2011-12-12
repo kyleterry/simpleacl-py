@@ -21,7 +21,7 @@ try:
 except:
     import json
 
-from exceptions import MissingRole, MissingResource, MissingActiveRole
+from exceptions import MissingRole, MissingPrivilege, MissingActiveRole
 
 
 class Role:
@@ -43,8 +43,8 @@ class Role:
         return self._parents
 
 
-class Resource:
-    """Holds a resource value"""
+class Privilege:
+    """Holds a privilege value"""
 
     def __init__(self, name):
         self.name = name
@@ -58,12 +58,12 @@ class Acl:
        access control list.
     """
     roles = {}
-    resources = {}
+    privileges = {}
     allow_list = {}
     active_role = None
 
     role_class = Role
-    resource_class = Resource
+    privilege_class = Privilege
 
     def add_role(self, role, parents=[]):
         """Adds a role by instantiating a new Role object.
@@ -90,31 +90,31 @@ class Acl:
 
         return role
 
-    def add_resource(self, resource):
-        """Adds a resource to the list of resources by
-        instantiating a new Resource object. "resource"
-        can be a string or Resource object when calling
+    def add_privilege(self, privilege):
+        """Adds a privilege to the list of privileges by
+        instantiating a new Privilege object. "privilege"
+        can be a string or Privilege object when calling
         this method.
         """
-        if not isinstance(resource, self.resource_class):
-            if not isinstance(resource, (str, unicode)):
+        if not isinstance(privilege, self.privilege_class):
+            if not isinstance(privilege, (str, unicode)):
                 raise Exception(
-                    'Unable to add resource of type: {0}'\
-                        .format(type(resource).__name__)
+                    'Unable to add privilege of type: {0}'\
+                        .format(type(privilege).__name__)
                 )
-            if resource in self.resources:
-                resource = self.resources[resource]
+            if privilege in self.privileges:
+                privilege = self.privileges[privilege]
             else:
-                resource = self.resource_class(resource)
+                privilege = self.privilege_class(privilege)
 
-        if resource.get_name() not in self.resources:
-            self.resources[resource.get_name()] = resource
+        if privilege.get_name() not in self.privileges:
+            self.privileges[privilege.get_name()] = privilege
 
-        return resource
+        return privilege
 
-    def allow(self, role, resource='all', context=None, allow=True):
+    def allow(self, role, privilege='all', context=None, allow=True):
         """Use this method to allow a role access to a
-        specific resource or list of resources.
+        specific privilege or list of privileges.
         """
         if context not in self.allow_list:
             self.allow_list[context] = {}
@@ -130,39 +130,39 @@ class Acl:
         if role not in allow_list:
             allow_list[role] = {}
 
-        if not hasattr(resource, '__iter__'):
-            resource = [resource]
+        if not hasattr(privilege, '__iter__'):
+            privilege = [privilege]
 
-        for res in resource:
-            if isinstance(res, self.resource_class):
+        for res in privilege:
+            if isinstance(res, self.privilege_class):
                 res = res.get_name()
-            if res not in self.resources:
-                raise MissingResource('Resources must be defined ' \
+            if res not in self.privileges:
+                raise MissingPrivilege('Privileges must be defined ' \
                 'before assigning them to roles')
             allow_list[role][res] = allow
         return self
 
-    def deny(self, role, resource='all', context=None):
+    def deny(self, role, privilege='all', context=None):
         """Use this method to allow a role access to a
-        specific resource or list of resources.
+        specific privilege or list of privileges.
         """
-        return self.allow(role, resource, context, allow=False)
+        return self.allow(role, privilege, context, allow=False)
 
-    def role_has_resource(self, role, resource, context=None):
+    def role_has_privilege(self, role, privilege, context=None):
         if context not in self.allow_list:
             self.allow_list[context] = {}
         allow_list = self.allow_list[context]
         if isinstance(role, self.role_class):
             role = role.get_name()
-        if isinstance(resource, self.resource_class):
-            resource = resource.get_name()
-        return resource in allow_list[role]
+        if isinstance(privilege, self.privilege_class):
+            privilege = privilege.get_name()
+        return privilege in allow_list[role]
 
     def active_role_is(self, role):
         """You must use this method to set the active role
-        before calling Acl.isAllowed(resource). This method
+        before calling Acl.isAllowed(privilege). This method
         should be called when the acl object is built with
-        roles, resources and it's allow list.
+        roles, privileges and it's allow list.
         """
         if isinstance(role, self.role_class):
             role = role.get_name()
@@ -175,10 +175,10 @@ class Acl:
 
         return self
 
-    def is_allowed(self, resource, context=None, undef=False):
+    def is_allowed(self, privilege, context=None, undef=False):
         """This method returns a True or False based on the allow
-        list if a role has access to that resource. If Guest (role)
-        has access to Page1 (resource), then calling
+        list if a role has access to that privilege. If Guest (role)
+        has access to Page1 (privilege), then calling
         Acl.isAllowed('Page1') will return True. If Guest doesn't have
         access - it will return False.
         """
@@ -195,12 +195,12 @@ class Acl:
         if isinstance(role, self.role_class):
             role = role.get_name()
 
-        if isinstance(resource, self.resource_class):
-            resource = resource.get_name()
+        if isinstance(privilege, self.privilege_class):
+            privilege = privilege.get_name()
 
-        if resource in allow_list[role]:
+        if privilege in allow_list[role]:
             # Denied also supports
-            return allow_list[role][resource] == True
+            return allow_list[role][privilege] == True
 
         if 'all' in allow_list[role]:
             # Denied also supports
@@ -209,7 +209,7 @@ class Acl:
         # Parents support for roles
         for parent in role.get_parents():
             self.active_role_is(parent)
-            allow = self.is_allowed(resource, context, None)
+            allow = self.is_allowed(privilege, context, None)
             if allow is not None:
                 return allow
 
@@ -217,15 +217,15 @@ class Acl:
         if '.' in role:
             parent = role.rsplit('.', 1).pop(0)
             self.active_role_is(parent)
-            allow = self.is_allowed(resource, context, None)
+            allow = self.is_allowed(privilege, context, None)
             if allow is not None:
                 return allow
 
         self.active_role_is(role)
 
-        # Hierarchical support for resources
-        if '.' in resource:
-            parent = resource.rsplit('.', 1).pop(0)
+        # Hierarchical support for privileges
+        if '.' in privilege:
+            parent = privilege.rsplit('.', 1).pop(0)
             allow = self.is_allowed(parent, context, None)
             if allow is not None:
                 return allow
@@ -233,7 +233,7 @@ class Acl:
         # Parents support for context
         if hasattr(context, 'get_parents'):
             for parent in context.get_parents():
-                allow = self.is_allowed(resource, parent, None)
+                allow = self.is_allowed(privilege, parent, None)
                 if allow is not None:
                     return allow
 
@@ -241,9 +241,9 @@ class Acl:
 
     @classmethod
     def obj_from_json(cls, json_data):
-        """You can store your roles, resources and allow list (many to many)
+        """You can store your roles, privileges and allow list (many to many)
         in a json encoded string and pass it into this method to build
-        the object without having to call add_role or add_resource for each
+        the object without having to call add_role or add_privilege for each
         one. TODO: make better documentation for this method.
         """
 
@@ -252,6 +252,6 @@ class Acl:
         for value in clean['roles']:
             obj.add_role(value)
 
-        for value in clean['resources']:
-            obj.add_resource(value)
+        for value in clean['privileges']:
+            obj.add_privilege(value)
         return obj

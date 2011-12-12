@@ -2,7 +2,7 @@
 
 """
 @file setup.py
-@author Kyle Terry
+@author Ivan Zakrevsky
 @date 3/15/2010
 @brief Setuptools configuration for simpleacl
 """
@@ -14,12 +14,12 @@ sdict = {
     'version' : version,
     'description' : 'Simple Access Control list for Python',
     'long_description' : 'Simple Access Control list for Python that includes wsgi middleware.',
-    'url': 'http://github.com/kyleterry/simpleacl-py',
-    'download_url' : 'http://cloud.github.com/downloads/kyleterry/simpleacl-py/simpleacl-%s.tar.gz' % version,
-    'author' : 'Kyle Terry',
-    'author_email' : 'kyle@kyleterry.com',
-    'maintainer' : 'Kyle Terry',
-    'maintainer_email' : 'kyle@kyleterry.com',
+    'url': 'http://github.com/EvoTech/simpleacl-py',
+    'download_url' : 'http://cloud.github.com/downloads/EvoTech/simpleacl-py/simpleacl-%s.tar.gz' % version,
+    'author' : 'Ivan Zakrevsky',
+    'author_email' : 'ivzak@yandex.ru',
+    'maintainer' : 'Ivan Zakrevsky',
+    'maintainer_email' : 'ivzak@yandex.ru',
     'keywords' : ['acl', 'simpleacl', 'access control list', 'auth list'],
     'license' : 'GPL',
     'packages' : ['simpleacl'],
