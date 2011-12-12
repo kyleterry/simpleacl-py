@@ -27,7 +27,7 @@ from exceptions import MissingRole, MissingResource, MissingActiveRole
 class Role:
     """Holds a role value"""
 
-    _parents = set()
+    _parents = []  # Order is important, so use the list(), not set
 
     def __init__(self, name):
         self.name = name
@@ -36,7 +36,8 @@ class Role:
         return self.name
 
     def add_parent(self, parent):
-        self._parents[parent.get_name()] = parent
+        if parent not in self._parents:
+            self._parents.append(parent)
 
     def get_parents(self):
         return self._parents
@@ -129,15 +130,12 @@ class Acl:
         if role not in allow_list:
             allow_list[role] = {}
 
-        if (type(resource).__name__ == 'str') and resource == 'all':
-            for res in self.resources:
-                allow_list[role][res] = allow
-            return self
-
-        if type(resource).__name__ == 'str':
+        if not hasattr(resource, '__iter__'):
             resource = [resource]
 
         for res in resource:
+            if isinstance(res, self.resource_class):
+                res = res.get_name()
             if res not in self.resources:
                 raise MissingResource('Resources must be defined ' \
                 'before assigning them to roles')
@@ -197,16 +195,23 @@ class Acl:
         if isinstance(role, self.role_class):
             role = role.get_name()
 
+        if isinstance(resource, self.resource_class):
+            resource = resource.get_name()
+
         if resource in allow_list[role]:
             # Denied also supports
             return allow_list[role][resource] == True
+
+        if 'all' in allow_list[role]:
+            # Denied also supports
+            return allow_list[role]['all'] == True
 
         # Parents support for roles
         for parent in role.get_parents():
             self.active_role_is(parent)
             allow = self.is_allowed(resource, context, None)
             if allow is not None:
-                return None
+                return allow
 
         # Hierarchical support for roles
         if '.' in role:
@@ -214,7 +219,7 @@ class Acl:
             self.active_role_is(parent)
             allow = self.is_allowed(resource, context, None)
             if allow is not None:
-                return None
+                return allow
 
         self.active_role_is(role)
 
@@ -223,14 +228,14 @@ class Acl:
             parent = resource.rsplit('.', 1).pop(0)
             allow = self.is_allowed(parent, context, None)
             if allow is not None:
-                return None
+                return allow
 
         # Parents support for context
         if hasattr(context, 'get_parents'):
             for parent in context.get_parents():
                 allow = self.is_allowed(resource, parent, None)
                 if allow is not None:
-                    return None
+                    return allow
 
         return undef
 
