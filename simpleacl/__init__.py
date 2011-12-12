@@ -136,8 +136,9 @@ class Acl:
             role = role.get_name()
 
         if role not in self.roles:
-            raise MissingRole('Roles must be defined before adding ' \
-            'them to the allow list')
+            raise MissingRole(
+                'Roles must be defined before adding them to the allow list'
+            )
 
         if role not in allow_list:
             allow_list[role] = {}
@@ -149,8 +150,9 @@ class Acl:
             if isinstance(priv, self.privilege_class):
                 priv = priv.get_name()
             if priv not in self.privileges and priv != ALL_PRIVILEGES:
-                raise MissingPrivilege('Privileges must be defined ' \
-                'before assigning them to roles')
+                raise MissingPrivilege(
+                    'Privileges must be defined before assigning them to roles'
+                )
             allow_list[role][priv] = allow
         return self
 
