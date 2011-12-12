@@ -112,7 +112,7 @@ class Acl:
 
         return resource
 
-    def allow(self, role, resource, context=None, allow=True):
+    def allow(self, role, resource='all', context=None, allow=True):
         """Use this method to allow a role access to a
         specific resource or list of resources.
         """
@@ -142,7 +142,7 @@ class Acl:
             allow_list[role][res] = allow
         return self
 
-    def deny(self, role, resource, context=None):
+    def deny(self, role, resource='all', context=None):
         """Use this method to allow a role access to a
         specific resource or list of resources.
         """
