@@ -21,7 +21,10 @@ try:
 except:
     import json
 
-from exceptions import MissingRole, MissingPrivilege, MissingActiveRole
+from simpleacl.exceptions import MissingRole, MissingActiveRole,\
+    MissingPrivilege
+
+ALL_PRIVILEGES = 'all'
 
 
 class Role:
@@ -90,8 +93,8 @@ class Acl:
             role.add_parent(parent)
 
         # Hierarchical support for roles
-        if '.' in role:
-            parent = role.rsplit('.', 1).pop(0)
+        if '.' in role.get_name():
+            parent = role.get_name().rsplit('.', 1).pop(0)
             parent = self.add_role(parent)  # Recursive
         return role
 
@@ -116,12 +119,12 @@ class Acl:
             self.privileges[privilege.get_name()] = privilege
 
         # Hierarchical support for privileges
-        if '.' in privilege:
-            parent = privilege.rsplit('.', 1).pop(0)
+        if '.' in privilege.get_name():
+            parent = privilege.get_name().rsplit('.', 1).pop(0)
             parent = self.add_privilege(parent)  # Recursive
         return privilege
 
-    def allow(self, role, privilege='all', context=None, allow=True):
+    def allow(self, role, privilege=ALL_PRIVILEGES, context=None, allow=True):
         """Use this method to allow a role access to a
         specific privilege or list of privileges.
         """
@@ -142,16 +145,16 @@ class Acl:
         if not hasattr(privilege, '__iter__'):
             privilege = [privilege]
 
-        for res in privilege:
-            if isinstance(res, self.privilege_class):
-                res = res.get_name()
-            if res not in self.privileges:
+        for priv in privilege:
+            if isinstance(priv, self.privilege_class):
+                priv = priv.get_name()
+            if priv not in self.privileges and priv != ALL_PRIVILEGES:
                 raise MissingPrivilege('Privileges must be defined ' \
                 'before assigning them to roles')
-            allow_list[role][res] = allow
+            allow_list[role][priv] = allow
         return self
 
-    def deny(self, role, privilege='all', context=None):
+    def deny(self, role, privilege=ALL_PRIVILEGES, context=None):
         """Use this method to allow a role access to a
         specific privilege or list of privileges.
         """
@@ -211,12 +214,12 @@ class Acl:
             # Denied also supports
             return allow_list[role][privilege] == True
 
-        if 'all' in allow_list[role]:
+        if ALL_PRIVILEGES in allow_list[role]:
             # Denied also supports
-            return allow_list[role]['all'] == True
+            return allow_list[role][ALL_PRIVILEGES] == True
 
         # Parents support for roles
-        for parent in role.get_parents():
+        for parent in self.roles[role].get_parents():
             self.active_role_is(parent)
             allow = self.is_allowed(privilege, context, None)
             if allow is not None:

@@ -1,8 +1,14 @@
 import unittest
 
-import rpdb2; rpdb2.start_embedded_debugger('111')
+if __name__ == '__main__':
+    import os
+    import sys
+    sys.path.insert(0, os.path.dirname(
+        os.path.dirname(os.path.abspath(__file__))
+    ))
+
 import simpleacl
-from exceptions import MissingRole, MissingPrivilege,\
+from simpleacl.exceptions import MissingRole, MissingPrivilege,\
     MissingActiveRole
 from simpleacl import json
 
@@ -25,7 +31,11 @@ class TestSimpleAcl(unittest.TestCase):
         assert len(self.acl.roles) > 0
 
     def test_only_role_objects_and_strings_get_added(self):
-        self.acl.add_role(dict(a='b'))
+        self.assertRaises(
+            Exception,
+            self.acl.add_role,
+            dict(a='b')
+        )
 
     def test_privilege_gets_added(self):
         self.acl.add_privilege('privilege1')
@@ -37,7 +47,11 @@ class TestSimpleAcl(unittest.TestCase):
         assert len(self.acl.privileges) > 0
 
     def test_only_privilege_objects_and_strings_get_added(self):
-        self.acl.add_privilege(dict(a='b'))
+        self.assertRaises(
+            Exception,
+            self.acl.add_privilege,
+            dict(a='b')
+        )
 
     def test_role_stored_is_role_object(self):
         self.acl.add_role('role1')
@@ -45,7 +59,8 @@ class TestSimpleAcl(unittest.TestCase):
 
     def test_privilege_stored_is_privilege_object(self):
         self.acl.add_privilege('privilege1')
-        assert isinstance(self.acl.privileges['privilege1'], simpleacl.Privilege)
+        assert isinstance(self.acl.privileges['privilege1'],
+                          simpleacl.Privilege)
 
     def test_setting_active_role(self):
         self.acl.add_role('role1')
@@ -55,7 +70,11 @@ class TestSimpleAcl(unittest.TestCase):
         assert self.acl.active_role == 'role1'
 
     def test_cant_set_to_missing_role(self):
-        self.acl.active_role_is('role999')
+        self.assertRaises(
+            MissingRole,
+            self.acl.active_role_is,
+            'role999'
+        )
 
     def test_allow_role_to_privilege(self):
         self.acl.add_role('role1')
@@ -90,12 +109,22 @@ class TestSimpleAcl(unittest.TestCase):
     def test_cant_allow_missing_roles(self):
         self.acl.add_role('role1')
         self.acl.add_privilege('privilege2')
-        self.acl.allow('role222', 'privilege2')
+        self.assertRaises(
+            MissingRole,
+            self.acl.allow,
+            'role222',
+            'privilege2'
+        )
 
     def test_cant_allow_missing_privileges(self):
         self.acl.add_role('role1')
         self.acl.add_privilege('privilege1')
-        self.acl.allow('role1', 'privilege222')
+        self.assertRaises(
+            MissingPrivilege,
+            self.acl.allow,
+            'role1',
+            'privilege222'
+        )
 
     def test_allow_role_to_all_privileges(self):
         self.acl.add_role('role1')
@@ -119,7 +148,11 @@ class TestSimpleAcl(unittest.TestCase):
         self.acl.add_role('role1')
         self.acl.add_privilege('r1')
         self.acl.allow('role1', 'r1')
-        self.acl.is_allowed('r1')
+        self.assertRaises(
+            MissingActiveRole,
+            self.acl.is_allowed,
+            'r1'
+        )
 
     def test_object_creation_from_json(self):
         test_dict = {'roles': ['role1', 'role2'], 'privileges': ['r1', 'r2',
