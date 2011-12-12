@@ -1,6 +1,7 @@
 #######################################################################
 # Simpleacl - A small access control list
-# Copyright (C) 2010  Kyle Terry <kyle@fiverlabs.com>
+# Copyright (C) 2010  Ivan Zakrevsky <ivzak [at] yandex [dot] ru>
+# Copyright (C) 2010  Kyle Terry <kyle [at] fiverlabs [dot] com>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -15,30 +16,31 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #######################################################################
-import string
-import sys
-version = string.split(string.split(sys.version)[0], ".")
-if map(int, version) < [2, 6, 0]:
-    try:
-        import simplejson as json
-    except:
-        raise Exception("""This method will work natively
-        with Python 2.6.x+. In order to use it with versions 
-        under 2.6.x, you must install the simplejson lib.""")
-
-else:
+try:
+    import simplejson as json
+except:
     import json
 
 from exceptions import MissingRole, MissingResource, MissingActiveRole
 
+
 class Role:
     """Holds a role value"""
+
+    _parents = set()
 
     def __init__(self, name):
         self.name = name
 
     def get_name(self):
         return self.name
+
+    def add_parent(self, parent):
+        self._parents[parent.get_name()] = parent
+
+    def get_parents(self):
+        return self._parents
+
 
 class Resource:
     """Holds a resource value"""
@@ -49,8 +51,9 @@ class Resource:
     def get_name(self):
         return self.name
 
+
 class Acl:
-    """A simple class to manage an 
+    """A simple class to manage an
        access control list.
     """
     roles = {}
@@ -58,23 +61,33 @@ class Acl:
     allow_list = {}
     active_role = None
 
-    def add_role(self, role):
+    role_class = Role
+    resource_class = Resource
+
+    def add_role(self, role, parents=[]):
         """Adds a role by instantiating a new Role object.
         "role" can be a string or Role object when calling
         this method.
         """
-        if (type(role).__name__=='str') or (type(role).__name__=='unicode'):
-            self.roles[role] = Role(role)
-            self.allow_list[role] = {}
-        elif (type(role).__name__=='instance') and \
-        (role.__class__.__name__=='Role'):
-            self.roles[role.get_name()] = role
-            self.allow_list[role] = {}
-        else:
-            raise Exception('Unable to add role of type: %s' % \
-            (type(role).__name__))
+        if not isinstance(role, self.role_class):
+            if not isinstance(role, (str, unicode)):
+                raise Exception(
+                    'Unable to add role of type: {0}'\
+                        .format(type(role).__name__)
+                )
+            if role in self.roles:
+                role = self.roles[role]
+            else:
+                role = self.role_class(role)
 
-        return self
+        if role.get_name() not in self.roles:
+            self.roles[role.get_name()] = role
+
+        for parent in parents:
+            parent = self.add_role(parent)
+            role.add_parent(parent)
+
+        return role
 
     def add_resource(self, resource):
         """Adds a resource to the list of resources by
@@ -82,48 +95,70 @@ class Acl:
         can be a string or Resource object when calling
         this method.
         """
-        if (type(resource).__name__=='str') or \
-        (type(resource).__name__=='unicode'):
-            self.resources[resource] = Resource(resource)
-        elif (type(resource).__name__=='instance') and \
-        (resource.__class__.__name__=='Resource'):
+        if not isinstance(resource, self.resource_class):
+            if not isinstance(resource, (str, unicode)):
+                raise Exception(
+                    'Unable to add resource of type: {0}'\
+                        .format(type(resource).__name__)
+                )
+            if resource in self.resources:
+                resource = self.resources[resource]
+            else:
+                resource = self.resource_class(resource)
+
+        if resource.get_name() not in self.resources:
             self.resources[resource.get_name()] = resource
-        else:
-            raise Exception('Unable to add role of type: %s' % \
-            (type(resource).__name__))
 
-        return self
+        return resource
 
-    def allow(self, role, resource):
+    def allow(self, role, resource, context=None, allow=True):
         """Use this method to allow a role access to a
         specific resource or list of resources.
         """
-        if not self.roles.has_key(role):
+        if context not in self.allow_list:
+            self.allow_list[context] = {}
+        allow_list = self.allow_list[context]
+
+        if isinstance(role, self.role_class):
+            role = role.get_name()
+
+        if role not in self.roles:
             raise MissingRole('Roles must be defined before adding ' \
             'them to the allow list')
-        if (type(resource).__name__=='str') and resource=='all':
+
+        if role not in allow_list:
+            allow_list[role] = {}
+
+        if (type(resource).__name__ == 'str') and resource == 'all':
             for res in self.resources:
-                self.allow_list[role][res] = True
+                allow_list[role][res] = allow
             return self
-        if type(resource).__name__=='str':
+
+        if type(resource).__name__ == 'str':
             resource = [resource]
+
         for res in resource:
-            if not self.resources.has_key(res):
+            if res not in self.resources:
                 raise MissingResource('Resources must be defined ' \
                 'before assigning them to roles')
-            if self.allow_list[role].has_key(res):
-                continue
-            self.allow_list[role][res] = True
+            allow_list[role][res] = allow
         return self
 
-    def role_has_resource(self, role, resource):
-        if isinstance(role, str):
-            role = Role(role)
-        if isinstance(resource, str):
-            resource = Resource(resource)
-        if self.allow_list[role.get_name()].has_key(resource.get_name()):
-            return True
-        return False
+    def deny(self, role, resource, context=None):
+        """Use this method to allow a role access to a
+        specific resource or list of resources.
+        """
+        return self.allow(role, resource, context, allow=False)
+
+    def role_has_resource(self, role, resource, context=None):
+        if context not in self.allow_list:
+            self.allow_list[context] = {}
+        allow_list = self.allow_list[context]
+        if isinstance(role, self.role_class):
+            role = role.get_name()
+        if isinstance(resource, self.resource_class):
+            resource = resource.get_name()
+        return resource in allow_list[role]
 
     def active_role_is(self, role):
         """You must use this method to set the active role
@@ -131,7 +166,10 @@ class Acl:
         should be called when the acl object is built with
         roles, resources and it's allow list.
         """
-        if not self.roles.has_key(role):
+        if isinstance(role, self.role_class):
+            role = role.get_name()
+
+        if role not in self.roles:
             raise MissingRole('Roles must be defined before ' \
             'setting them active')
 
@@ -139,22 +177,62 @@ class Acl:
 
         return self
 
-    def is_allowed(self, resource):
+    def is_allowed(self, resource, context=None, undef=False):
         """This method returns a True or False based on the allow
         list if a role has access to that resource. If Guest (role)
         has access to Page1 (resource), then calling
         Acl.isAllowed('Page1') will return True. If Guest doesn't have
         access - it will return False.
         """
+        if context not in self.allow_list:
+            self.allow_list[context] = {}
+
+        allow_list = self.allow_list[context]
+
         if not self.active_role:
             raise MissingActiveRole('A role must be set active ' \
             'before checking permissions')
 
-        if (self.allow_list[self.active_role].has_key(resource)) and \
-        (self.allow_list[self.active_role][resource]==True):
-            return True
+        role = self.active_role
+        if isinstance(role, self.role_class):
+            role = role.get_name()
 
-        return False
+        if resource in allow_list[role]:
+            # Denied also supports
+            return allow_list[role][resource] == True
+
+        # Parents support for roles
+        for parent in role.get_parents():
+            self.active_role_is(parent)
+            allow = self.is_allowed(resource, context, None)
+            if allow is not None:
+                return None
+
+        # Hierarchical support for roles
+        if '.' in role:
+            parent = role.rsplit('.', 1).pop(0)
+            self.active_role_is(parent)
+            allow = self.is_allowed(resource, context, None)
+            if allow is not None:
+                return None
+
+        self.active_role_is(role)
+
+        # Hierarchical support for resources
+        if '.' in resource:
+            parent = resource.rsplit('.', 1).pop(0)
+            allow = self.is_allowed(parent, context, None)
+            if allow is not None:
+                return None
+
+        # Parents support for context
+        if hasattr(context, 'get_parents'):
+            for parent in context.get_parents():
+                allow = self.is_allowed(resource, parent, None)
+                if allow is not None:
+                    return None
+
+        return undef
 
     @classmethod
     def obj_from_json(cls, json_data):
