@@ -1,9 +1,11 @@
 import unittest
 
+import rpdb2; rpdb2.start_embedded_debugger('111')
 import simpleacl
-from simpleacl.exceptions import MissingRole, MissingPrivilege,\
-        MissingActiveRole
-from nose.tools import raises
+from exceptions import MissingRole, MissingPrivilege,\
+    MissingActiveRole
+from simpleacl import json
+
 
 class TestSimpleAcl(unittest.TestCase):
 
@@ -22,7 +24,6 @@ class TestSimpleAcl(unittest.TestCase):
         self.acl.add_role(role)
         assert len(self.acl.roles) > 0
 
-    @raises(Exception)
     def test_only_role_objects_and_strings_get_added(self):
         self.acl.add_role(dict(a='b'))
 
@@ -35,7 +36,6 @@ class TestSimpleAcl(unittest.TestCase):
         self.acl.add_privilege(privilege)
         assert len(self.acl.privileges) > 0
 
-    @raises(Exception)
     def test_only_privilege_objects_and_strings_get_added(self):
         self.acl.add_privilege(dict(a='b'))
 
@@ -54,7 +54,6 @@ class TestSimpleAcl(unittest.TestCase):
         self.acl.active_role_is('role1')
         assert self.acl.active_role == 'role1'
 
-    @raises(MissingRole)
     def test_cant_set_to_missing_role(self):
         self.acl.active_role_is('role999')
 
@@ -88,13 +87,11 @@ class TestSimpleAcl(unittest.TestCase):
         self.acl.active_role_is('role1')
         assert not self.acl.is_allowed('privilege1')
 
-    @raises(MissingRole)
     def test_cant_allow_missing_roles(self):
         self.acl.add_role('role1')
         self.acl.add_privilege('privilege2')
         self.acl.allow('role222', 'privilege2')
 
-    @raises(MissingPrivilege)
     def test_cant_allow_missing_privileges(self):
         self.acl.add_role('role1')
         self.acl.add_privilege('privilege1')
@@ -118,7 +115,6 @@ class TestSimpleAcl(unittest.TestCase):
         self.acl.allow('role1', 'r1')
         self.acl.allow('role1', 'r1')
 
-    @raises(MissingActiveRole)
     def test_cant_check_is_allowed_without_active_role(self):
         self.acl.add_role('role1')
         self.acl.add_privilege('r1')
@@ -126,9 +122,11 @@ class TestSimpleAcl(unittest.TestCase):
         self.acl.is_allowed('r1')
 
     def test_object_creation_from_json(self):
-        import json
         test_dict = {'roles': ['role1', 'role2'], 'privileges': ['r1', 'r2',
             'r3']}
         test_json = json.dumps(test_dict)
         acl = simpleacl.Acl.obj_from_json(test_json)
         assert isinstance(acl, simpleacl.Acl)
+
+if __name__ == '__main__':
+    unittest.main()
