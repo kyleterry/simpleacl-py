@@ -84,10 +84,15 @@ class Acl:
         if role.get_name() not in self.roles:
             self.roles[role.get_name()] = role
 
+        # Parents support for roles
         for parent in parents:
             parent = self.add_role(parent)
             role.add_parent(parent)
 
+        # Hierarchical support for roles
+        if '.' in role:
+            parent = role.rsplit('.', 1).pop(0)
+            parent = self.add_role(parent)  # Recursive
         return role
 
     def add_privilege(self, privilege):
@@ -110,6 +115,10 @@ class Acl:
         if privilege.get_name() not in self.privileges:
             self.privileges[privilege.get_name()] = privilege
 
+        # Hierarchical support for privileges
+        if '.' in privilege:
+            parent = privilege.rsplit('.', 1).pop(0)
+            parent = self.add_privilege(parent)  # Recursive
         return privilege
 
     def allow(self, role, privilege='all', context=None, allow=True):
