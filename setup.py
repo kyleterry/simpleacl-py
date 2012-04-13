@@ -24,6 +24,10 @@ sdict = {
     'license' : 'GPL',
     'packages' : ['simpleacl'],
     'test_suite' : 'tests.all_tests',
+    'install_requires': [
+        'nose',
+        'coverage',
+    ],
     'classifiers' : [
         'Development Status :: 4 - Beta',
         'Environment :: Console',

@@ -21,9 +21,19 @@ class TestSimpleAcl(unittest.TestCase):
     def tearDown(self):
         self.acl = None
 
+    def test_adding_parent_roles(self):
+        self.acl.add_role('highest')
+        self.acl.roles['highest'].add_parent('lowest')
+        self.acl.roles['highest'].add_parent('testing')
+        assert len(self.acl.roles['highest'].get_parents()) > 0
+
     def test_role_gets_added(self):
         self.acl.add_role('role1')
         assert len(self.acl.roles) > 0
+
+        self.acl.add_role('child_role2', parents=('prole1', 'prole2'))
+
+        assert len(self.acl.roles['child_role2'].get_parents()) == 2
 
     def test_role_object_gets_added(self):
         role = simpleacl.Role('role1')

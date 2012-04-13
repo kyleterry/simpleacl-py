@@ -27,18 +27,30 @@ from simpleacl.exceptions import MissingRole, MissingActiveRole,\
 ALL_PRIVILEGES = 'all'
 
 
-class Role:
+class Role(object):
     """Holds a role value"""
 
-    _parents = []  # Order is important, so use the list(), not set
+    _parents = None  # Order is important, so use the list(), not set
+    acl = None
 
     def __init__(self, name):
         self.name = name
+        self._parents = []
+
+    def __repr__(self):
+        return '<Role %s>' % self.name
+
+    def __str__(self):
+        return self.name
+
+    def __unicode__(self):
+        return unicode(self)
 
     def get_name(self):
         return self.name
 
     def add_parent(self, parent):
+        parent = self.acl.add_role(parent)
         if parent not in self._parents:
             self._parents.append(parent)
 
@@ -46,7 +58,7 @@ class Role:
         return self._parents
 
 
-class Privilege:
+class Privilege(object):
     """Holds a privilege value"""
 
     def __init__(self, name):
@@ -56,7 +68,7 @@ class Privilege:
         return self.name
 
 
-class Acl:
+class Acl(object):
     """A simple class to manage an
        access control list.
     """
@@ -86,6 +98,8 @@ class Acl:
 
         if role.get_name() not in self.roles:
             self.roles[role.get_name()] = role
+
+        role.acl = self
 
         # Parents support for roles
         for parent in parents:
@@ -193,7 +207,7 @@ class Acl:
         """This method returns a True or False based on the allow
         list if a role has access to that privilege. If Guest (role)
         has access to Page1 (privilege), then calling
-        Acl.isAllowed('Page1') will return True. If Guest doesn't have
+        Acl.is_allowed('Page1') will return True. If Guest doesn't have
         access - it will return False.
         """
         if context not in self.allow_list:
