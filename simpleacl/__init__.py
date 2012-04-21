@@ -36,10 +36,10 @@ class Role(object):
         self.name = name
 
     def __eq__(self, other):
-        return self.name.__eq__(other.name)
+        return self.name.__eq__(getattr(other, 'name', other))
 
     def __ne__(self, other):
-        return self.name.__ne__(other.name)
+        return self.name.__ne__(getattr(other, 'name', other))
 
     def __hash__(self):
         return self.name.__hash__()
@@ -68,10 +68,10 @@ class Privilege(object):
         self.name = name
 
     def __eq__(self, other):
-        return self.name.__eq__(other.name)
+        return self.name.__eq__(getattr(other, 'name', other))
 
     def __ne__(self, other):
-        return self.name.__ne__(other.name)
+        return self.name.__ne__(getattr(other, 'name', other))
 
     def __hash__(self):
         return self.name.__hash__()
@@ -97,10 +97,10 @@ class ContextHolder(object):
         self.base = base
 
     def __eq__(self, other):
-        return self.base.__eq__(other.base)
+        return self.base.__eq__(getattr(other, 'base', other))
 
     def __ne__(self, other):
-        return self.base.__ne__(other.base)
+        return self.base.__ne__(getattr(other, 'base', other))
 
     def __hash__(self):
         return self.base.__hash__()
