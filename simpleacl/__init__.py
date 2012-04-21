@@ -74,7 +74,7 @@ class Acl:
         this method.
         """
         if not isinstance(role, self.role_class):
-            if not isinstance(role, (str, unicode)):
+            if not isinstance(role, (basestring,)):
                 raise Exception(
                     'Unable to add role of type: {0}'\
                         .format(type(role).__name__)
@@ -105,7 +105,7 @@ class Acl:
         this method.
         """
         if not isinstance(privilege, self.privilege_class):
-            if not isinstance(privilege, (str, unicode)):
+            if not isinstance(privilege, (basestring,)):
                 raise Exception(
                     'Unable to add privilege of type: {0}'\
                         .format(type(privilege).__name__)
@@ -189,6 +189,10 @@ class Acl:
 
         return self
 
+    def set_active_role(self, role):
+        """Just alias for self.active_role_is()"""
+        return self.active_role_is(role)
+
     def is_allowed(self, privilege, context=None, undef=False):
         """This method returns a True or False based on the allow
         list if a role has access to that privilege. If Guest (role)
@@ -253,6 +257,28 @@ class Acl:
 
         return undef
 
+    def add_from_json(self, json_data, context=None):
+        """You can store your roles, privileges and allow list (many to many)
+        in a json encoded string and pass it into this method to build
+        the object without having to call add_role or add_privilege for each
+        one. TODO: make better documentation for this method.
+        """
+
+        clean = json.loads(json_data)
+        if 'roles' in clean:
+            for value in clean['roles']:
+                self.add_role(value)
+
+        if 'privileges' in clean:
+            for value in clean['privileges']:
+                self.add_privilege(value)
+
+        if 'acl' in clean:
+            for row in clean['acl']:
+                self.allow(row['role'], row['privilege'],
+                           context, row['allow'])
+        return self
+
     @classmethod
     def obj_from_json(cls, json_data):
         """You can store your roles, privileges and allow list (many to many)
@@ -261,11 +287,6 @@ class Acl:
         one. TODO: make better documentation for this method.
         """
 
-        clean = json.loads(json_data)
         obj = cls()
-        for value in clean['roles']:
-            obj.add_role(value)
-
-        for value in clean['privileges']:
-            obj.add_privilege(value)
+        obj.add_from_json(json_data)
         return obj
