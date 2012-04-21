@@ -159,7 +159,7 @@ class TestSimpleAcl(unittest.TestCase):
         test_dict = {'roles': ['role1', 'role2'], 'privileges': ['r1', 'r2',
             'r3']}
         test_json = json.dumps(test_dict)
-        acl = simpleacl.Acl.obj_from_json(test_json)
+        acl = simpleacl.Acl.create_instance(test_json)
         self.assertTrue(isinstance(acl, simpleacl.Acl))
 
 if __name__ == '__main__':

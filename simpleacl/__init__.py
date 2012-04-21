@@ -56,6 +56,31 @@ class Privilege:
         return self.name
 
 
+class Context:
+    """Holder for context value"""
+
+    _parents = []  # Order is important, so use the list(), not set
+
+    def __init__(self, base):
+        self.base = base
+
+    def add_parent(self, parent):
+        if parent not in self._parents:
+            self._parents.append(parent)
+
+    def get_parents(self):
+        return self._parents
+
+    def __eq__(self, other):
+        return self.base == other.base
+
+    def __ne__(self, other):
+        return self.base != other.base
+
+    def __hash__(self, other):
+        return other.__hash__()
+
+
 class Acl:
     """A simple class to manage an
        access control list.
@@ -257,14 +282,18 @@ class Acl:
 
         return undef
 
-    def add_from_json(self, json_data, context=None):
+    def bulk_load(self, json_or_dict, context=None):
         """You can store your roles, privileges and allow list (many to many)
         in a json encoded string and pass it into this method to build
         the object without having to call add_role or add_privilege for each
         one. TODO: make better documentation for this method.
         """
 
-        clean = json.loads(json_data)
+        if isinstance(json_or_dict, (basestring,)):
+            clean = json.loads(json_or_dict)
+        else:
+            clean = json_or_dict
+
         if 'roles' in clean:
             for value in clean['roles']:
                 self.add_role(value)
@@ -280,13 +309,12 @@ class Acl:
         return self
 
     @classmethod
-    def obj_from_json(cls, json_data):
+    def create_instance(cls, json_or_dict):
         """You can store your roles, privileges and allow list (many to many)
         in a json encoded string and pass it into this method to build
         the object without having to call add_role or add_privilege for each
         one. TODO: make better documentation for this method.
         """
-
         obj = cls()
-        obj.add_from_json(json_data)
+        obj.bulk_load(json_or_dict)
         return obj
