@@ -23,12 +23,12 @@ class TestSimpleAcl(unittest.TestCase):
 
     def test_role_gets_added(self):
         self.acl.add_role('role1')
-        self.assertTrue(len(self.acl.roles) > 0)
+        self.assertTrue(len(self.acl._backend._roles) > 0)
 
     def test_role_object_gets_added(self):
         role = simpleacl.Role('role1')
         self.acl.add_role(role)
-        self.assertTrue(len(self.acl.roles) > 0)
+        self.assertTrue(len(self.acl._backend._roles) > 0)
 
     def test_only_role_objects_and_strings_get_added(self):
         self.assertRaises(
@@ -39,12 +39,12 @@ class TestSimpleAcl(unittest.TestCase):
 
     def test_privilege_gets_added(self):
         self.acl.add_privilege('privilege1')
-        self.assertTrue(len(self.acl.privileges) > 0)
+        self.assertTrue(len(self.acl._backend._privileges) > 0)
 
     def test_privilege_object_gets_added(self):
         privilege = simpleacl.Privilege('privilege1')
         self.acl.add_privilege(privilege)
-        self.assertTrue(len(self.acl.privileges) > 0)
+        self.assertTrue(len(self.acl._backend._privileges) > 0)
 
     def test_only_privilege_objects_and_strings_get_added(self):
         self.assertRaises(
@@ -55,12 +55,13 @@ class TestSimpleAcl(unittest.TestCase):
 
     def test_role_stored_is_role_object(self):
         self.acl.add_role('role1')
-        self.assertTrue(isinstance(self.acl.roles['role1'], simpleacl.Role))
+        self.assertTrue(isinstance(self.acl.get_role('role1'), simpleacl.Role))
 
     def test_privilege_stored_is_privilege_object(self):
         self.acl.add_privilege('privilege1')
         self.assertTrue(
-            isinstance(self.acl.privileges['privilege1'], simpleacl.Privilege)
+            isinstance(self.acl.get_privilege('privilege1'),
+                       simpleacl.Privilege)
         )
 
     def test_setting_active_role(self):
@@ -68,7 +69,7 @@ class TestSimpleAcl(unittest.TestCase):
         self.acl.add_role('role2')
         self.acl.add_privilege('privilege1')
         self.acl.active_role_is('role1')
-        self.assertTrue(self.acl.active_role == 'role1')
+        self.assertTrue(self.acl.active_role.get_name() == 'role1')
 
     def test_cant_set_to_missing_role(self):
         self.assertRaises(
