@@ -21,14 +21,14 @@ sdict = {
     'maintainer' : 'Ivan Zakrevsky',
     'maintainer_email' : 'ivzak@yandex.ru',
     'keywords' : ['acl', 'simpleacl', 'access control list', 'auth list'],
-    'license' : 'GPLv3+ License',
+    'license' : 'LGPLv2+ License',
     'packages' : ['simpleacl'],
     'test_suite' : 'tests.all_tests',
     'classifiers' : [
         'Development Status :: 4 - Beta',
         'Environment :: Console',
         'Intended Audience :: Developers',
-        'License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)',
+        'License :: OSI Approved :: GNU Lesser General Public License v2 or later (LGPLv2+)',
         'Operating System :: OS Independent',
         'Programming Language :: Python'],
 }
