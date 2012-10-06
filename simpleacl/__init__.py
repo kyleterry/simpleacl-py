@@ -86,7 +86,7 @@ class Privilege(object):
         return self.name
 
 
-class ContextHolder(object):
+class Context(object):
     """Holder for context value.
 
     Sometimes apposite for usege as context wrapper."""
