@@ -15,7 +15,7 @@ sdict = {
     'description' : 'Simple Access Control list for Python',
     'long_description' : 'Simple Access Control list for Python that includes wsgi middleware.',
     'url': 'http://github.com/EvoTech/simpleacl-py',
-    'download_url' : 'http://cloud.github.com/downloads/EvoTech/simpleacl-py/simpleacl-%s.tar.gz' % version,
+    'download_url' : 'http://cloud.github.com/downloads/EvoTech/simpleacl-py/simpleacl-{0}.tar.gz'.format(version),
     'author' : 'Ivan Zakrevsky',
     'author_email' : 'ivzak@yandex.ru',
     'maintainer' : 'Ivan Zakrevsky',
@@ -39,4 +39,3 @@ except ImportError:
     from distutils.core import setup
     
 setup(**sdict)
-

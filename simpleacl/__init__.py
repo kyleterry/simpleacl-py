@@ -16,6 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #######################################################################
+from __future__ import absolute_import, unicode_literals
 try:
     import simplejson as json
 except:
@@ -23,6 +24,12 @@ except:
 
 from simpleacl.exceptions import MissingRole, MissingActiveRole,\
     MissingPrivilege
+
+try:
+    str = unicode  # Python 2.* compatible
+except NameError:
+    pass
+    
 
 ALL_PRIVILEGES = 'all'
 
@@ -44,11 +51,11 @@ class Role(object):
     def __hash__(self):
         return self.name.__hash__()
 
+    def __bytes__(self):
+        return str(self.name).encode('utf-8')
+
     def __str__(self):
         return str(self.name)
-
-    def __unicode__(self):
-        return unicode(self.name)
 
     def get_name(self):
         return self.name
@@ -76,11 +83,11 @@ class Privilege(object):
     def __hash__(self):
         return self.name.__hash__()
 
+    def __bytes__(self):
+        return str(self.name).encode('utf-8')
+
     def __str__(self):
         return str(self.name)
-
-    def __unicode__(self):
-        return unicode(self.name)
 
     def get_name(self):
         return self.name
@@ -205,7 +212,9 @@ class Acl(object):
 
     def add_role(self, name_or_instance, parents=None):
         """Adds a role to the ACL"""
-        if isinstance(name_or_instance, (basestring, )):
+        if isinstance(name_or_instance, bytes):
+            name_or_instance = str(name_or_instance)
+        if isinstance(name_or_instance, str):
             instance = self._backend.role_class(name_or_instance)
         elif isinstance(name_or_instance, self._backend.role_class):
             instance = name_or_instance
@@ -236,7 +245,9 @@ class Acl(object):
 
     def add_privilege(self, name_or_instance):
         """Adds a privilege to the ACL"""
-        if isinstance(name_or_instance, (basestring, )):
+        if isinstance(name_or_instance, bytes):
+            name_or_instance = str(name_or_instance)
+        if isinstance(name_or_instance, str):
             instance = self._backend.privilege_class(name_or_instance)
         elif isinstance(name_or_instance, self._backend.privilege_class):
             instance = name_or_instance
@@ -255,7 +266,9 @@ class Acl(object):
 
     def get_privilege(self, name_or_instance):
         """Returns the identified privilege instance"""
-        if isinstance(name_or_instance, (basestring, )):
+        if isinstance(name_or_instance, bytes):
+            name_or_instance = str(name_or_instance)
+        if isinstance(name_or_instance, str):
             return self._backend.get_privilege(name_or_instance)
         if isinstance(name_or_instance, self._backend.privilege_class):
             return name_or_instance
@@ -385,8 +398,9 @@ class Acl(object):
         the object without having to call add_role or add_privilege for each
         one. TODO: make better documentation for this method.
         """
-
-        if isinstance(json_or_dict, (basestring,)):
+        if isinstance(json_or_dict, bytes):
+            json_or_dict = str(json_or_dict)
+        if isinstance(json_or_dict, str):
             clean = json.loads(json_or_dict)
         else:
             clean = json_or_dict
@@ -420,3 +434,15 @@ class Acl(object):
         obj = cls()
         obj.bulk_load(json_or_dict)
         return obj
+
+# Python 2.* compatible
+try:
+    unicode
+except NameError:
+    pass
+else:
+    Role.__unicode__ = Role.__str__
+    Role.__str__ = Role.__bytes__
+
+    Privilege.__unicode__ = Role.__str__
+    Privilege.__str__ = Role.__bytes__

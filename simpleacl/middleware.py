@@ -1,3 +1,4 @@
+from __future__ import absolute_import, unicode_literals
 #######################################################################
 # Simpleacl Middleware - A small access control list
 # Copyright (C) 2010  Kyle Terry <kyle@fiverlabs.com>
