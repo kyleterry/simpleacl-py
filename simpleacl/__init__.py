@@ -444,5 +444,5 @@ else:
     Role.__unicode__ = Role.__str__
     Role.__str__ = Role.__bytes__
 
-    Privilege.__unicode__ = Role.__str__
-    Privilege.__str__ = Role.__bytes__
+    Privilege.__unicode__ = Privilege.__str__
+    Privilege.__str__ = Privilege.__bytes__
