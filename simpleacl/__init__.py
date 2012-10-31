@@ -441,8 +441,6 @@ try:
 except NameError:
     pass
 else:
-    Role.__unicode__ = Role.__str__
-    Role.__str__ = Role.__bytes__
-
-    Privilege.__unicode__ = Privilege.__str__
-    Privilege.__str__ = Privilege.__bytes__
+    for cls in (Role, Privilege, ):
+        cls.__unicode__ = cls.__str__
+        cls.__str__ = cls.__bytes__
