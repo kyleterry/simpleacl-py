@@ -1,0 +1,2 @@
+- Kyle Terry <kyle@kyleterry.com>
+- Ivan Zakrevsky <ivzak@yandex.ru>

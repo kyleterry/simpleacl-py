@@ -1,7 +1,7 @@
 #######################################################################
 # Simpleacl - A small access control list
-# Copyright (C) 2010  Ivan Zakrevsky <ivzak [at] yandex [dot] ru>
-# Copyright (C) 2010  Kyle Terry <kyle [at] fiverlabs [dot] com>
+# Copyright (C) 2010-2013  Ivan Zakrevsky <ivzak [at] yandex [dot] ru>
+# Copyright (C) 2010-2013  Kyle Terry <kyle [at] kyleterry [dot] com>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -29,7 +29,7 @@ try:
     str = unicode  # Python 2.* compatible
 except NameError:
     pass
-    
+
 
 ALL_PRIVILEGES = 'all'
 
