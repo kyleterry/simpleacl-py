@@ -16,6 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #######################################################################
+from __future__ import absolute_import, unicode_literals
 try:
     import simplejson as json
 except:
@@ -23,6 +24,12 @@ except:
 
 from simpleacl.exceptions import MissingRole, MissingActiveRole,\
     MissingPrivilege
+
+try:
+    str = unicode  # Python 2.* compatible
+except NameError:
+    pass
+    
 
 ALL_PRIVILEGES = 'all'
 
@@ -46,6 +53,21 @@ class Role(object):
     def __unicode__(self):
         return unicode(self)
 
+    def __eq__(self, other):
+        return self.name.__eq__(getattr(other, 'name', other))
+
+    def __ne__(self, other):
+        return self.name.__ne__(getattr(other, 'name', other))
+
+    def __hash__(self):
+        return self.name.__hash__()
+
+    def __bytes__(self):
+        return str(self.name).encode('utf-8')
+
+    def __str__(self):
+        return str(self.name)
+
     def get_name(self):
         return self.name
 
@@ -64,186 +86,299 @@ class Privilege(object):
     def __init__(self, name):
         self.name = name
 
+    def __eq__(self, other):
+        return self.name.__eq__(getattr(other, 'name', other))
+
+    def __ne__(self, other):
+        return self.name.__ne__(getattr(other, 'name', other))
+
+    def __hash__(self):
+        return self.name.__hash__()
+
+    def __bytes__(self):
+        return str(self.name).encode('utf-8')
+
+    def __str__(self):
+        return str(self.name)
+
     def get_name(self):
         return self.name
 
 
-class Acl(object):
-    """A simple class to manage an
-       access control list.
-    """
-    roles = {}
-    privileges = {}
-    allow_list = {}
-    active_role = None
+class Context(object):
+    """Holder for context value.
 
+    Sometimes apposite for usege as context wrapper."""
+
+    _parents = []  # Order is important, so use the list(), not set
+
+    def __init__(self, base):
+        self.base = base
+
+    def __eq__(self, other):
+        return self.base.__eq__(getattr(other, 'base', other))
+
+    def __ne__(self, other):
+        return self.base.__ne__(getattr(other, 'base', other))
+
+    def __hash__(self):
+        return self.base.__hash__()
+
+    def add_parent(self, parent):
+        if parent not in self._parents:
+            self._parents.append(parent)
+
+    def get_parents(self):
+        return self._parents
+
+
+class SimpleBackend(object):
+    """A simple storage."""
+    _roles = None
+    _privileges = None
+    _acl = None
     role_class = Role
     privilege_class = Privilege
 
-    def add_role(self, role, parents=[]):
-        """Adds a role by instantiating a new Role object.
-        "role" can be a string or Role object when calling
-        this method.
-        """
-        if not isinstance(role, self.role_class):
-            if not isinstance(role, (str, unicode)):
-                raise Exception(
-                    'Unable to add role of type: {0}'\
-                        .format(type(role).__name__)
-                )
-            if role in self.roles:
-                role = self.roles[role]
-            else:
-                role = self.role_class(role)
+    def __init__(self):
+        """Constructor."""
+        self._roles = {}
+        self._privileges = {}
+        self._acl = {}
 
-        if role.get_name() not in self.roles:
-            self.roles[role.get_name()] = role
+    def add_role(self, role, parents=None):
+        """Adds role"""
+        self._roles.setdefault(role.get_name(), role)
+        return self
 
-        role.acl = self
-
-        # Parents support for roles
-        for parent in parents:
-            parent = self.add_role(parent)
-            role.add_parent(parent)
-
-        # Hierarchical support for roles
-        if '.' in role.get_name():
-            parent = role.get_name().rsplit('.', 1).pop(0)
-            parent = self.add_role(parent)  # Recursive
-        return role
-
-    def add_privilege(self, privilege):
-        """Adds a privilege to the list of privileges by
-        instantiating a new Privilege object. "privilege"
-        can be a string or Privilege object when calling
-        this method.
-        """
-        if not isinstance(privilege, self.privilege_class):
-            if not isinstance(privilege, (str, unicode)):
-                raise Exception(
-                    'Unable to add privilege of type: {0}'\
-                        .format(type(privilege).__name__)
-                )
-            if privilege in self.privileges:
-                privilege = self.privileges[privilege]
-            else:
-                privilege = self.privilege_class(privilege)
-
-        if privilege.get_name() not in self.privileges:
-            self.privileges[privilege.get_name()] = privilege
-
-        # Hierarchical support for privileges
-        if '.' in privilege.get_name():
-            parent = privilege.get_name().rsplit('.', 1).pop(0)
-            parent = self.add_privilege(parent)  # Recursive
-        return privilege
-
-    def allow(self, role, privilege=ALL_PRIVILEGES, context=None, allow=True):
-        """Use this method to allow a role access to a
-        specific privilege or list of privileges.
-        """
-        if context not in self.allow_list:
-            self.allow_list[context] = {}
-        allow_list = self.allow_list[context]
-
-        if isinstance(role, self.role_class):
-            role = role.get_name()
-
-        if role not in self.roles:
+    def get_role(self, role_name):
+        """Returns a role instance"""
+        try:
+            return self._roles[role_name]
+        except KeyError:
             raise MissingRole(
-                'Roles must be defined before adding them to the allow list'
+                'Role must be added before requested.'
             )
 
-        if role not in allow_list:
-            allow_list[role] = {}
-
-        if not hasattr(privilege, '__iter__'):
-            privilege = [privilege]
-
-        for priv in privilege:
-            if isinstance(priv, self.privilege_class):
-                priv = priv.get_name()
-            if priv not in self.privileges and priv != ALL_PRIVILEGES:
-                raise MissingPrivilege(
-                    'Privileges must be defined before assigning them to roles'
-                )
-            allow_list[role][priv] = allow
+    def add_privilege(self, privilege):
+        """Adds privilege"""
+        self._privileges.setdefault(privilege.get_name(), privilege)
         return self
 
-    def deny(self, role, privilege=ALL_PRIVILEGES, context=None):
-        """Use this method to allow a role access to a
-        specific privilege or list of privileges.
-        """
-        return self.allow(role, privilege, context, allow=False)
+    def get_privilege(self, privilege_name):
+        """Returns a privilege instance"""
+        try:
+            return self._privileges[privilege_name]
+        except KeyError:
+            raise MissingPrivilege(
+                'Privilege must be added before requested.'
+            )
 
-    def role_has_privilege(self, role, privilege, context=None):
-        if context not in self.allow_list:
-            self.allow_list[context] = {}
-        allow_list = self.allow_list[context]
-        if isinstance(role, self.role_class):
-            role = role.get_name()
-        if isinstance(privilege, self.privilege_class):
-            privilege = privilege.get_name()
-        return privilege in allow_list[role]
-
-    def active_role_is(self, role):
-        """You must use this method to set the active role
-        before calling Acl.isAllowed(privilege). This method
-        should be called when the acl object is built with
-        roles, privileges and it's allow list.
-        """
-        if isinstance(role, self.role_class):
-            role = role.get_name()
-
-        if role not in self.roles:
-            raise MissingRole('Roles must be defined before ' \
-            'setting them active')
-
-        self.active_role = role
-
+    def add_rule(self, role, privilege=ALL_PRIVILEGES,
+                 context=None, allow=True):
+        """Adds rule to the ACL"""
+        acl = self._acl.setdefault(context, {})
+        role_rules = acl.setdefault(role, {})
+        role_rules[privilege] = allow
         return self
 
-    def is_allowed(self, privilege, context=None, undef=False):
-        """This method returns a True or False based on the allow
-        list if a role has access to that privilege. If Guest (role)
-        has access to Page1 (privilege), then calling
-        Acl.is_allowed('Page1') will return True. If Guest doesn't have
-        access - it will return False.
+    def remove_rule(self, role, privilege=ALL_PRIVILEGES,
+                    context=None, allow=True):
+        """Removes rule from ACL"""
+        try:
+            if self._acl[context][role][privilege] == allow:
+                del self._acl[context][role][privilege]
+        except KeyError:
+            pass
+        return self
+
+    def role_has_privilege(self, role, privilege, context=None, allow=True):
+        """Removes rule from ACL"""
+        try:
+            return self._acl[context][role][privilege] == allow
+        except KeyError:
+            return False
+
+    def is_allowed(self, role, privilege, context=None, undef=None):
+        """Returns True if active role is allowed
+
+        for given privilege in given given context
         """
-        if context not in self.allow_list:
-            self.allow_list[context] = {}
+        try:
+            return self._acl[context][role][privilege]
+        except KeyError:
+            return undef
 
-        allow_list = self.allow_list[context]
 
-        if not self.active_role:
-            raise MissingActiveRole('A role must be set active ' \
-            'before checking permissions')
+class Acl(object):
+    """Access control list."""
 
-        role = self.active_role
-        if isinstance(role, self.role_class):
-            role = role.get_name()
+    active_role = None
 
-        if isinstance(privilege, self.privilege_class):
-            privilege = privilege.get_name()
+    def __init__(self, backend_class=None):
+        """Constructor."""
+        if backend_class is None:
+            backend_class = SimpleBackend
+        self._backend = backend_class()
+        self.add_privilege(ALL_PRIVILEGES)
 
-        if privilege in allow_list[role]:
-            # Denied also supports
-            return allow_list[role][privilege] == True
-
-        if ALL_PRIVILEGES in allow_list[role]:
-            # Denied also supports
-            return allow_list[role][ALL_PRIVILEGES] == True
+    def add_role(self, name_or_instance, parents=None):
+        """Adds a role to the ACL"""
+        if isinstance(name_or_instance, bytes):
+            name_or_instance = str(name_or_instance)
+        if isinstance(name_or_instance, str):
+            instance = self._backend.role_class(name_or_instance)
+        elif isinstance(name_or_instance, self._backend.role_class):
+            instance = name_or_instance
+        else:
+            raise Exception(
+                'Unable to add a role of type: {0}'\
+                    .format(type(name_or_instance).__name__)
+            )
+        self._backend.add_role(instance)
 
         # Parents support for roles
-        for parent in self.roles[role].get_parents():
+        if parents is not None:
+            for parent in parents:
+                parent = self.add_role(parent)
+                instance.add_parent(parent)
+
+        # Hierarchical support for roles
+        if '.' in instance.get_name():
+            parent = instance.get_name().rsplit('.', 1).pop(0)
+            parent = self.add_role(parent)  # Recursive
+        return instance
+
+    def get_role(self, name_or_instance):
+        """Returns the identified role instance"""
+        if isinstance(name_or_instance, self._backend.role_class):
+            return name_or_instance
+        return self._backend.get_role(name_or_instance)
+
+    def add_privilege(self, name_or_instance):
+        """Adds a privilege to the ACL"""
+        if isinstance(name_or_instance, bytes):
+            name_or_instance = str(name_or_instance)
+        if isinstance(name_or_instance, str):
+            instance = self._backend.privilege_class(name_or_instance)
+        elif isinstance(name_or_instance, self._backend.privilege_class):
+            instance = name_or_instance
+        else:
+            raise Exception(
+                'Unable to add a privilege of type: {0}'\
+                    .format(type(name_or_instance).__name__)
+            )
+        self._backend.add_privilege(instance)
+
+        # Hierarchical support for instances
+        if '.' in instance.get_name():
+            parent = instance.get_name().rsplit('.', 1).pop(0)
+            parent = self.add_instance(parent)  # Recursive
+        return instance
+
+    def get_privilege(self, name_or_instance):
+        """Returns the identified privilege instance"""
+        if isinstance(name_or_instance, bytes):
+            name_or_instance = str(name_or_instance)
+        if isinstance(name_or_instance, str):
+            return self._backend.get_privilege(name_or_instance)
+        if isinstance(name_or_instance, self._backend.privilege_class):
+            return name_or_instance
+        raise Exception(
+            'Unable to get a Privelege of type: {0}'\
+                .format(type(name_or_instance).__name__)
+        )
+
+    def add_rule(self, role, privileges=ALL_PRIVILEGES,
+                 context=None, allow=True):
+        """Adds rule to the ACL"""
+        if not hasattr(privileges, '__iter__'):
+            privileges = (privileges, )
+        for priv in privileges:
+            self._backend.add_rule(
+                self.get_role(role), self.get_privilege(priv), context, allow
+            )
+        return self
+
+    def remove_rule(self, role, privileges=ALL_PRIVILEGES,
+                    context=None, allow=True):
+        """Removes rule from ACL"""
+        if not hasattr(privileges, '__iter__'):
+            privileges = (privileges, )
+        for priv in privileges:
+            self._backend.remove_rule(
+                self.get_role(role), self.get_privilege(priv), context, allow
+            )
+        return self
+
+    def allow(self, role, privileges=ALL_PRIVILEGES, context=None):
+        """Adds an "allow" rule to the ACL"""
+        return self.add_rule(role, privileges, context, True)
+
+    def remove_allow(self, role, privileges=ALL_PRIVILEGES, context=None):
+        """Removes an "allow" rule from the ACL"""
+        return self.remove_rule(role, privileges, context, True)
+
+    def deny(self, role, privileges=ALL_PRIVILEGES, context=None):
+        """Adds a "deny" rule to the ACL"""
+        return self.add_rule(role, privileges, context, False)
+
+    def remove_deny(self, role, privileges=ALL_PRIVILEGES, context=None):
+        """Removes a "deny" rule from the ACL"""
+        return self.remove_rule(role, privileges, context, False)
+
+    def role_has_privilege(self, role, privilege, context=None, allow=True):
+        """Returns True if role has privilege"""
+        try:
+            return self._backend.role_has_privilege(
+                self.get_role(role), self.get_privilege(privilege),
+                context, allow
+            )
+        except MissingPrivilege:
+            return False
+
+    def active_role_is(self, role):
+        """Sets active role"""
+        self.active_role = self.get_role(role)
+        return self
+
+    def set_active_role(self, role):
+        """Just alias for self.active_role_is()"""
+        return self.active_role_is(role)
+
+    def is_allowed(self, privilege, context=None, undef=False):
+        """Returns True if active role is allowed
+
+        for given privilege in given given context
+        """
+        if not self.active_role:
+            raise MissingActiveRole(
+                "A role must be set active before checking permissions"
+            )
+
+        role = self.active_role
+        privilege = self.get_privilege(privilege)
+
+        allow = self._backend.is_allowed(role, privilege, context, None)
+        if allow is not None:
+            return allow
+
+        allow = self._backend.is_allowed(
+            role, self.get_privilege(ALL_PRIVILEGES), context, None
+        )
+        if allow is not None:
+            return allow
+
+        # Parents support for roles
+        for parent in role.get_parents():
             self.active_role_is(parent)
             allow = self.is_allowed(privilege, context, None)
             if allow is not None:
                 return allow
 
         # Hierarchical support for roles
-        if '.' in role:
-            parent = role.rsplit('.', 1).pop(0)
+        if '.' in role.get_name():
+            parent = self.get_role(role.get_name().rsplit('.', 1).pop(0))
             self.active_role_is(parent)
             allow = self.is_allowed(privilege, context, None)
             if allow is not None:
@@ -252,8 +387,10 @@ class Acl(object):
         self.active_role_is(role)
 
         # Hierarchical support for privileges
-        if '.' in privilege:
-            parent = privilege.rsplit('.', 1).pop(0)
+        if '.' in privilege.get_name():
+            parent = self.get_privilege(
+                privilege.get_name().rsplit('.', 1).pop(0)
+            )
             allow = self.is_allowed(parent, context, None)
             if allow is not None:
                 return allow
@@ -267,19 +404,55 @@ class Acl(object):
 
         return undef
 
-    @classmethod
-    def obj_from_json(cls, json_data):
+    def bulk_load(self, json_or_dict, context=None):
         """You can store your roles, privileges and allow list (many to many)
         in a json encoded string and pass it into this method to build
         the object without having to call add_role or add_privilege for each
         one. TODO: make better documentation for this method.
         """
+        if isinstance(json_or_dict, bytes):
+            json_or_dict = str(json_or_dict)
+        if isinstance(json_or_dict, str):
+            clean = json.loads(json_or_dict)
+        else:
+            clean = json_or_dict
 
-        clean = json.loads(json_data)
+        if 'roles' in clean:
+            for value in clean['roles']:
+                if hasattr(value, '__iter__'):
+                    self.add_role(*value)
+                elif isinstance(value, dict):
+                    self.add_role(**value)
+                else:
+                    self.add_role(value)
+
+        if 'privileges' in clean:
+            for value in clean['privileges']:
+                self.add_privilege(value)
+
+        if 'acl' in clean:
+            for row in clean['acl']:
+                self.allow(row['role'], row['privilege'],
+                           context, row['allow'])
+        return self
+
+    @classmethod
+    def create_instance(cls, json_or_dict):
+        """You can store your roles, privileges and allow list (many to many)
+        in a json encoded string and pass it into this method to build
+        the object without having to call add_role or add_privilege for each
+        one. TODO: make better documentation for this method.
+        """
         obj = cls()
-        for value in clean['roles']:
-            obj.add_role(value)
-
-        for value in clean['privileges']:
-            obj.add_privilege(value)
+        obj.bulk_load(json_or_dict)
         return obj
+
+# Python 2.* compatible
+try:
+    unicode
+except NameError:
+    pass
+else:
+    for cls in (Role, Privilege, ):
+        cls.__unicode__ = cls.__str__
+        cls.__str__ = cls.__bytes__
