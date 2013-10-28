@@ -84,7 +84,7 @@ class Role(object):
     def remove_parent(self, parent=None):
         if self.acl is None:
             raise MissingACLObject(
-                'Role: %s has not set ACL object: {0}' % \
+                'Role: %s has not set ACL object.' % \
                     format(type(self).__name__)
             )
             
