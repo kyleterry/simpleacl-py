@@ -72,9 +72,32 @@ class Role(object):
         return self.name
 
     def add_parent(self, parent):
+        if self.acl is None:
+            raise MissingACLObject(
+                'Role: %s has not set ACL object.' % \
+                    format(type(self).__name__)
+            )
         parent = self.acl.add_role(parent)
         if parent not in self._parents:
             self._parents.append(parent)
+    
+    def remove_parent(self, parent=None):
+        if self.acl is None:
+            raise MissingACLObject(
+                'Role: %s has not set ACL object.' % \
+                    format(type(self).__name__)
+            )
+            
+        if parent is None:
+            self._parents = None
+            return True
+        
+        parent = self.acl.add_role(parent)
+        if parent in self._parents:
+            self._parents.remove(parent)
+            return True
+        else:
+            return False
 
     def get_parents(self):
         return self._parents
@@ -236,11 +259,16 @@ class Acl(object):
                     .format(type(name_or_instance).__name__)
             )
         self._backend.add_role(instance)
-
+        
+        if instance.acl is None:
+            instance.acl = self
+        
         # Parents support for roles
         if parents is not None:
             for parent in parents:
                 parent = self.add_role(parent)
+                if instance.acl is None:
+                    instance.acl = self
                 instance.add_parent(parent)
 
         # Hierarchical support for roles
@@ -251,9 +279,16 @@ class Acl(object):
 
     def get_role(self, name_or_instance):
         """Returns the identified role instance"""
+        
         if isinstance(name_or_instance, self._backend.role_class):
-            return name_or_instance
-        return self._backend.get_role(name_or_instance)
+            instance = name_or_instance
+        else:
+            instance = self._backend.get_role(name_or_instance)
+        
+        if instance.acl is None:
+            instance.acl = self
+        
+        return instance
 
     def add_privilege(self, name_or_instance):
         """Adds a privilege to the ACL"""
