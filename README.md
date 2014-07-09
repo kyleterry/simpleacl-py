@@ -22,8 +22,3 @@ Instructions for simpleacl Acl class
     True
     >>> acl.is_allowed('delete_page')
     False
-
-Instructions for simpleacl middleware - Bottle
-==============================================
-
-Middleware instructions for bottle are coming soon...
