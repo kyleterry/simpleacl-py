@@ -1,5 +1,7 @@
-Simpleacl
----------
+[![Build Status](https://travis-ci.org/kyleterry/simpleacl-py.svg?branch=master)](https://travis-ci.org/kyleterry/simpleacl-py)
+
+# Simpleacl
+
 
 Instructions for simpleacl Acl class
 ====================================
